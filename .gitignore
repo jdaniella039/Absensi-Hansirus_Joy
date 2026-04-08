@@ -1,0 +1,14 @@
+.env
+.env.backup
+.env.production
+*.log
+Thumbs.db
+.DS_Store
+
+/storage/*.log
+/storage/composer-home/
+/storage/leave_evidence/
+/laravel-app/public/uploads/leave-evidence/
+
+/vendor/
+/node_modules/
