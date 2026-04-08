@@ -99,6 +99,7 @@ function ensure_schema(PDO $pdo): void {
             location VARCHAR(120) NULL,
             notes VARCHAR(255) NULL,
             acknowledged_at DATETIME NULL,
+            acknowledged_seen_at DATETIME NULL,
             created_by INT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -111,6 +112,7 @@ function ensure_schema(PDO $pdo): void {
             break_start DATETIME NULL,
             break_end DATETIME NULL,
             check_out DATETIME NULL,
+            evidence_photo VARCHAR(255) NULL,
             status ENUM('pending','approved','rejected') DEFAULT 'pending',
             verification_note VARCHAR(255) NULL,
             verified_by INT NULL,
@@ -138,6 +140,7 @@ function ensure_schema(PDO $pdo): void {
             user_id INT NOT NULL,
             category ENUM('kritik','saran','masalah') DEFAULT 'saran',
             message TEXT NOT NULL,
+            admin_seen_at DATETIME NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
@@ -164,6 +167,36 @@ function ensure_schema(PDO $pdo): void {
     )->fetchColumn();
     if ($hasAcknowledgedAt === 0) {
         $pdo->exec("ALTER TABLE schedules ADD COLUMN acknowledged_at DATETIME NULL AFTER notes");
+    }
+
+    $hasAcknowledgedSeenAt = (int) $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'schedules'
+         AND COLUMN_NAME = 'acknowledged_seen_at'"
+    )->fetchColumn();
+    if ($hasAcknowledgedSeenAt === 0) {
+        $pdo->exec("ALTER TABLE schedules ADD COLUMN acknowledged_seen_at DATETIME NULL AFTER acknowledged_at");
+    }
+
+    $hasAttendanceEvidencePhoto = (int) $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'attendance_logs'
+         AND COLUMN_NAME = 'evidence_photo'"
+    )->fetchColumn();
+    if ($hasAttendanceEvidencePhoto === 0) {
+        $pdo->exec("ALTER TABLE attendance_logs ADD COLUMN evidence_photo VARCHAR(255) NULL AFTER check_out");
+    }
+
+    $hasFeedbackAdminSeenAt = (int) $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'feedbacks'
+         AND COLUMN_NAME = 'admin_seen_at'"
+    )->fetchColumn();
+    if ($hasFeedbackAdminSeenAt === 0) {
+        $pdo->exec("ALTER TABLE feedbacks ADD COLUMN admin_seen_at DATETIME NULL AFTER message");
     }
 }
 
@@ -279,6 +312,12 @@ function leave_evidence_directory(): string {
     return $path;
 }
 
+function attendance_evidence_directory(): string {
+    $path = dirname(__DIR__) . '/storage/attendance_evidence';
+    ensure_directory($path);
+    return $path;
+}
+
 function delete_leave_evidence(?string $relativePath): void {
     if ($relativePath === null || $relativePath === '') {
         return;
@@ -296,6 +335,23 @@ function delete_leave_evidence(?string $relativePath): void {
     }
 }
 
+function delete_attendance_evidence(?string $relativePath): void {
+    if ($relativePath === null || $relativePath === '') {
+        return;
+    }
+
+    $prefix = 'storage/attendance_evidence/';
+    if (!str_starts_with($relativePath, $prefix)) {
+        return;
+    }
+
+    $filename = basename($relativePath);
+    $fullPath = attendance_evidence_directory() . '/' . $filename;
+    if (is_file($fullPath)) {
+        unlink($fullPath);
+    }
+}
+
 function find_leave_request_by_id(int $leaveId): ?array {
     $stmt = db()->prepare('SELECT * FROM leave_requests WHERE id=?');
     $stmt->execute([$leaveId]);
@@ -306,9 +362,11 @@ function export_csv(string $filename, array $headers, array $rows): void {
     header('Content-Type: text/csv; charset=utf-8');
     header("Content-Disposition: attachment; filename={$filename}");
     $out = fopen('php://output', 'w');
-    fputcsv($out, $headers);
+    fwrite($out, "\xEF\xBB\xBF");
+    fwrite($out, "sep=;\r\n");
+    fputcsv($out, $headers, ';', '"', '');
     foreach ($rows as $row) {
-        fputcsv($out, $row);
+        fputcsv($out, $row, ';', '"', '');
     }
     fclose($out);
     exit;

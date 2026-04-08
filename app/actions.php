@@ -42,6 +42,7 @@ try {
         $u = user();
         $now = date('Y-m-d H:i:s');
         $kind = post('kind');
+        $evidencePath = null;
         $map = [
             'masuk' => 'check_in',
             'mulai_istirahat' => 'break_start',
@@ -51,6 +52,39 @@ try {
 
         if (!isset($map[$kind])) {
             flash('Jenis absensi tidak valid.', 'danger');
+            header('Location: ?page=attendance');
+            exit;
+        }
+
+        $cameraFile = $_FILES['attendance_evidence_camera'] ?? null;
+        $galleryFile = $_FILES['attendance_evidence_gallery'] ?? null;
+        $cameraError = (int) ($cameraFile['error'] ?? UPLOAD_ERR_NO_FILE);
+        $galleryError = (int) ($galleryFile['error'] ?? UPLOAD_ERR_NO_FILE);
+
+        if ($cameraError === UPLOAD_ERR_NO_FILE && $galleryError === UPLOAD_ERR_NO_FILE) {
+            flash('Foto bukti absensi wajib diunggah dari kamera atau galeri.', 'danger');
+            header('Location: ?page=attendance');
+            exit;
+        }
+
+        $file = $cameraError !== UPLOAD_ERR_NO_FILE ? $cameraFile : $galleryFile;
+        $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($error !== UPLOAD_ERR_OK) {
+            flash('Upload foto bukti absensi gagal.', 'danger');
+            header('Location: ?page=attendance');
+            exit;
+        }
+
+        if ((int) ($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            flash('Ukuran foto bukti absensi maksimal 2 MB.', 'danger');
+            header('Location: ?page=attendance');
+            exit;
+        }
+
+        $extension = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png'];
+        if (!in_array($extension, $allowedExtensions, true)) {
+            flash('Format foto bukti absensi hanya boleh JPG, JPEG, atau PNG.', 'danger');
             header('Location: ?page=attendance');
             exit;
         }
@@ -69,32 +103,53 @@ try {
             exit;
         }
 
+        $filename = sprintf(
+            'attendance-%d-%s-%s.%s',
+            (int) $u['id'],
+            $kind,
+            date('YmdHis'),
+            $extension
+        );
+        $target = attendance_evidence_directory() . '/' . $filename;
+        if (!move_uploaded_file((string) $file['tmp_name'], $target)) {
+            flash('Foto bukti absensi tidak bisa disimpan.', 'danger');
+            header('Location: ?page=attendance');
+            exit;
+        }
+        $evidencePath = 'storage/attendance_evidence/' . $filename;
+
         if ($kind === 'mulai_istirahat' && empty($row['check_in'])) {
+            delete_attendance_evidence($evidencePath);
             flash('Absensi masuk harus dilakukan sebelum mulai istirahat.', 'warning');
             header('Location: ?page=attendance');
             exit;
         }
 
         if ($kind === 'selesai_istirahat' && empty($row['break_start'])) {
+            delete_attendance_evidence($evidencePath);
             flash('Mulai istirahat harus dilakukan sebelum selesai istirahat.', 'warning');
             header('Location: ?page=attendance');
             exit;
         }
 
         if ($kind === 'pulang' && empty($row['check_in'])) {
+            delete_attendance_evidence($evidencePath);
             flash('Absensi masuk harus dilakukan sebelum pulang.', 'warning');
             header('Location: ?page=attendance');
             exit;
         }
 
         if ($kind === 'pulang' && !empty($row['break_start']) && empty($row['break_end'])) {
+            delete_attendance_evidence($evidencePath);
             flash('Selesaikan status istirahat sebelum absensi pulang.', 'warning');
             header('Location: ?page=attendance');
             exit;
         }
 
-        db()->prepare("UPDATE attendance_logs SET {$col}=?, status='pending', verification_note=NULL, verified_by=NULL, verified_at=NULL WHERE id=?")
-            ->execute([$now, (int) $row['id']]);
+        delete_attendance_evidence((string) ($row['evidence_photo'] ?? ''));
+
+        db()->prepare("UPDATE attendance_logs SET {$col}=?, evidence_photo=?, status='pending', verification_note=NULL, verified_by=NULL, verified_at=NULL WHERE id=?")
+            ->execute([$now, $evidencePath, (int) $row['id']]);
 
         log_audit((int) $u['id'], 'ABSENSI_' . strtoupper($kind), 'Karyawan melakukan absensi');
         flash('Absensi berhasil disimpan. Menunggu verifikasi admin.');
@@ -189,6 +244,194 @@ try {
         exit;
     }
 
+    if ($action === 'import_employees_csv') {
+        need_admin();
+
+        if (!isset($_FILES['employees_csv']) || (int) ($_FILES['employees_csv']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            flash('File CSV karyawan wajib dipilih.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $file = $_FILES['employees_csv'];
+        $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($error !== UPLOAD_ERR_OK) {
+            flash('Upload file CSV karyawan gagal.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+        if ($extension !== 'csv') {
+            flash('File import harus berformat CSV.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        if ((int) ($file['size'] ?? 0) > 2 * 1024 * 1024) {
+            flash('Ukuran file CSV maksimal 2 MB.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $handle = fopen((string) $file['tmp_name'], 'r');
+        if ($handle === false) {
+            flash('File CSV tidak bisa dibaca.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $delimiter = ';';
+        $firstLine = fgets($handle);
+        if ($firstLine === false) {
+            fclose($handle);
+            flash('File CSV kosong.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $firstLine = preg_replace('/^\xEF\xBB\xBF/', '', $firstLine) ?? $firstLine;
+        $trimmedFirstLine = trim($firstLine);
+        if (strtolower($trimmedFirstLine) === 'sep=;') {
+            $delimiter = ';';
+            $header = fgetcsv($handle, 0, $delimiter, '"', '');
+        } elseif (strtolower($trimmedFirstLine) === 'sep=,') {
+            $delimiter = ',';
+            $header = fgetcsv($handle, 0, $delimiter, '"', '');
+        } else {
+            $delimiter = substr_count($firstLine, ';') >= substr_count($firstLine, ',') ? ';' : ',';
+            rewind($handle);
+            $header = fgetcsv($handle, 0, $delimiter, '"', '');
+        }
+
+        if (!is_array($header) || $header === []) {
+            fclose($handle);
+            flash('Header CSV tidak valid.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $normalizeHeader = static function ($value): string {
+            $value = strtolower(trim((string) $value));
+            return preg_replace('/[^a-z]/', '', $value) ?? '';
+        };
+
+        $headerMap = [];
+        foreach ($header as $index => $columnName) {
+            $normalized = $normalizeHeader($columnName);
+            if ($normalized !== '') {
+                $headerMap[$normalized] = $index;
+            }
+        }
+
+        $requiredMap = [
+            'nama' => ['nama', 'name'],
+            'username' => ['username', 'user'],
+            'jabatan' => ['jabatan', 'position', 'posisi'],
+            'password' => ['password', 'passwordawal', 'pass'],
+        ];
+
+        $resolvedIndexes = [];
+        foreach ($requiredMap as $field => $aliases) {
+            foreach ($aliases as $alias) {
+                if (array_key_exists($alias, $headerMap)) {
+                    $resolvedIndexes[$field] = $headerMap[$alias];
+                    break;
+                }
+            }
+        }
+
+        if (!isset($resolvedIndexes['nama'], $resolvedIndexes['username'], $resolvedIndexes['password'])) {
+            fclose($handle);
+            flash('Header CSV wajib memuat kolom nama, username, dan password. Kolom jabatan opsional.', 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $rowsToInsert = [];
+        $usernamesInFile = [];
+        $lineNumber = 1;
+
+        while (($row = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
+            $lineNumber++;
+
+            $cells = array_map(static fn ($value): string => trim((string) $value), $row);
+            if ($cells === [] || count(array_filter($cells, static fn ($value): bool => $value !== '')) === 0) {
+                continue;
+            }
+
+            $name = $cells[$resolvedIndexes['nama']] ?? '';
+            $username = $cells[$resolvedIndexes['username']] ?? '';
+            $position = isset($resolvedIndexes['jabatan']) ? ($cells[$resolvedIndexes['jabatan']] ?? '') : '';
+            $password = $cells[$resolvedIndexes['password']] ?? '';
+
+            if ($name === '' || $username === '' || $password === '') {
+                fclose($handle);
+                flash("Baris {$lineNumber} tidak lengkap. Nama, username, dan password wajib diisi.", 'danger');
+                header('Location: ?page=employees');
+                exit;
+            }
+
+            $usernameKey = strtolower($username);
+            if (isset($usernamesInFile[$usernameKey])) {
+                fclose($handle);
+                flash("Username {$username} duplikat di file CSV.", 'danger');
+                header('Location: ?page=employees');
+                exit;
+            }
+
+            $usernamesInFile[$usernameKey] = true;
+            $rowsToInsert[] = [
+                'name' => $name,
+                'username' => $username,
+                'position' => $position,
+                'password' => $password,
+            ];
+        }
+
+        fclose($handle);
+
+        if ($rowsToInsert === []) {
+            flash('Tidak ada data karyawan yang bisa diimpor dari CSV.', 'warning');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($rowsToInsert), '?'));
+        $existingStmt = db()->prepare("SELECT username FROM users WHERE LOWER(username) IN ({$placeholders})");
+        $existingStmt->execute(array_map(static fn (array $row): string => strtolower($row['username']), $rowsToInsert));
+        $existingUsernames = $existingStmt->fetchAll(PDO::FETCH_COLUMN);
+        if ($existingUsernames !== []) {
+            flash('Import dibatalkan. Username sudah dipakai: ' . implode(', ', $existingUsernames), 'danger');
+            header('Location: ?page=employees');
+            exit;
+        }
+
+        $insertStmt = db()->prepare("INSERT INTO users (name, username, password_hash, role, position) VALUES (?, ?, ?, 'karyawan', ?)");
+        db()->beginTransaction();
+        try {
+            foreach ($rowsToInsert as $row) {
+                $insertStmt->execute([
+                    $row['name'],
+                    $row['username'],
+                    password_hash($row['password'], PASSWORD_DEFAULT),
+                    $row['position'],
+                ]);
+            }
+            db()->commit();
+        } catch (Throwable $e) {
+            if (db()->inTransaction()) {
+                db()->rollBack();
+            }
+            throw $e;
+        }
+
+        log_audit((int) user()['id'], 'IMPORT_KARYAWAN_CSV', 'Import CSV ' . count($rowsToInsert) . ' karyawan');
+        flash(count($rowsToInsert) . ' data karyawan berhasil diimpor dari CSV.');
+        header('Location: ?page=employees');
+        exit;
+    }
+
     if ($action === 'update_employee') {
         need_admin();
         $employeeId = (int) post('employee_id');
@@ -275,7 +518,7 @@ try {
         need_auth();
         $u = user();
         $id = (int) post('schedule_id');
-        db()->prepare('UPDATE schedules SET acknowledged_at=? WHERE id=? AND user_id=?')
+        db()->prepare('UPDATE schedules SET acknowledged_at=?, acknowledged_seen_at=NULL WHERE id=? AND user_id=?')
             ->execute([date('Y-m-d H:i:s'), $id, (int) $u['id']]);
         log_audit((int) $u['id'], 'KONFIRMASI_JADWAL', "Konfirmasi jadwal {$id}");
         flash('Jadwal berhasil dikonfirmasi.');

@@ -43,6 +43,22 @@ function render_evidence_preview(?string $path): void {
     <?php
 }
 
+function render_attendance_photo_preview(?string $path): void {
+    if ($path === null || $path === '') {
+        echo '-';
+        return;
+    }
+
+    ?>
+    <div class="d-flex align-items-center gap-2">
+        <a href="<?= h($path) ?>" target="_blank" rel="noopener noreferrer">
+            <img src="<?= h($path) ?>" alt="Bukti absensi" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #dee2e6;">
+        </a>
+        <a href="<?= h($path) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">Lihat</a>
+    </div>
+    <?php
+}
+
 function page_login(?array $u, ?array $flash): void {
     render_header('Login', $u, $flash);
     ?>
@@ -50,16 +66,16 @@ function page_login(?array $u, ?array $flash): void {
         <div class="row justify-content-center align-items-center w-100 g-4">
             <div class="col-lg-5">
                 <div class="card hero-panel">
-                    <div class="card-body p-4 p-lg-5">
-                        <div class="small text-uppercase fw-semibold muted">Portal Demo</div>
-                        <h2 class="mt-2 mb-3">Sistem Absensi Karyawan Berbasis Web</h2>
-                        <p class="muted mb-4">Dirancang untuk mendukung proses absensi, verifikasi, pengajuan izin, pengelolaan jadwal, dan pelaporan pada PT. Hansirus Agro Andalan.</p>
-                        <div class="small muted">Fitur utama</div>
-                        <div class="mt-2 d-flex flex-wrap gap-2">
-                            <span class="badge text-bg-light">Absensi Harian</span>
-                            <span class="badge text-bg-light">Persetujuan Izin</span>
-                            <span class="badge text-bg-light">Jadwal Kerja</span>
-                            <span class="badge text-bg-light">Laporan</span>
+                    <div class="card-body login-hero p-4 p-lg-5 d-flex align-items-center justify-content-center text-center" style="min-height: 420px;">
+                        <div class="w-100">
+                            <img
+                                src="storage/site-assets/hansirus-sawit.jpg"
+                                alt="Perkebunan kelapa sawit Hansirus"
+                                class="img-fluid login-hero-image mb-4"
+                                style="max-height: 190px; width: 100%; object-fit: cover; border-radius: 20px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);"
+                            >
+                            <h2 class="login-hero-title mb-2">Sistem Absensi Karyawan</h2>
+                            <div class="login-hero-subtitle">PT Hansirus Agro Andalan</div>
                         </div>
                     </div>
                 </div>
@@ -168,18 +184,51 @@ function page_attendance(array $u, ?array $flash): void {
         <?php else: ?>
             <div class="alert alert-warning py-2">Belum ada jadwal kerja untuk hari ini.</div>
         <?php endif; ?>
-        <form method="post" class="row g-2 align-items-end">
+        <form method="post" enctype="multipart/form-data">
             <input type="hidden" name="action" value="attendance_submit">
-            <div class="col-md-4">
-                <label class="form-label">Jenis</label>
-                <select name="kind" class="form-select">
-                    <option value="masuk">Masuk</option>
-                    <option value="mulai_istirahat">Mulai Istirahat</option>
-                    <option value="selesai_istirahat">Selesai Istirahat</option>
-                    <option value="pulang">Pulang</option>
-                </select>
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label">Jenis</label>
+                    <select name="kind" class="form-select">
+                        <option value="masuk">Masuk</option>
+                        <option value="mulai_istirahat">Mulai Istirahat</option>
+                        <option value="selesai_istirahat">Selesai Istirahat</option>
+                        <option value="pulang">Pulang</option>
+                    </select>
+                </div>
+                <div class="col-lg-4 col-md-6 mobile-only">
+                    <label class="form-label">Ambil Foto Langsung</label>
+                    <input type="file" id="attendance_evidence_camera" name="attendance_evidence_camera" class="file-picker-input" accept="image/*,.jpg,.jpeg,.png" capture="user">
+                    <label for="attendance_evidence_camera" class="file-picker-trigger">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M10.5 2a.5.5 0 0 1 .471.332L11.208 3H13.5A1.5 1.5 0 0 1 15 4.5v7A1.5 1.5 0 0 1 13.5 13h-11A1.5 1.5 0 0 1 1 11.5v-7A1.5 1.5 0 0 1 2.5 3h2.292l.237-.668A.5.5 0 0 1 5.5 2zM8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/>
+                            <path d="M8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3"/>
+                        </svg>
+                        <span>Buka Kamera</span>
+                    </label>
+                    <div class="file-picker-name" id="attendance_evidence_camera_name">Belum ada foto dipilih.</div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label">Upload File</label>
+                    <input type="file" id="attendance_evidence_gallery" name="attendance_evidence_gallery" class="file-picker-input" accept="image/*,.jpg,.jpeg,.png">
+                    <label for="attendance_evidence_gallery" class="file-picker-trigger">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M4.502 1a1.5 1.5 0 0 0-1.415 1H2.5A1.5 1.5 0 0 0 1 3.5v9A1.5 1.5 0 0 0 2.5 14h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 13.5 2h-.586a1.5 1.5 0 0 0-1.415-1zM4.5 2a.5.5 0 0 1 .492.41L5.09 3h5.82l.098-.59A.5.5 0 0 1 11.5 2zm4 3a2.5 2.5 0 1 1-2.45 3h-.55l-1.5 2h7l-1.75-2.333-.85 1.133A2.5 2.5 0 0 1 8.5 5"/>
+                        </svg>
+                        <span>Pilih Foto</span>
+                    </label>
+                    <div class="file-picker-name" id="attendance_evidence_gallery_name">Belum ada foto dipilih.</div>
+                </div>
+                <div class="col-lg-2 col-md-4"><button class="btn btn-primary w-100">Submit</button></div>
             </div>
-            <div class="col-md-2"><button class="btn btn-primary w-100">Submit</button></div>
+            <div class="row">
+                <div class="col-lg-4 col-md-12">
+                    <div class="form-text">
+                        <span class="d-none d-md-inline">Upload foto dari file/galeri. Format JPG, JPEG, atau PNG maksimal 2 MB.</span>
+                        <span class="d-md-none">Pilih salah satu: ambil foto langsung dari kamera depan atau upload dari galeri. Format JPG, JPEG, atau PNG maksimal 2 MB.</span>
+                    </div>
+                </div>
+            </div>
         </form>
         <hr>
         <p class="mb-1">Tanggal: <?= h(date('Y-m-d')) ?></p>
@@ -187,13 +236,35 @@ function page_attendance(array $u, ?array $flash): void {
         <p class="mb-1">Istirahat Mulai: <?= h((string) ($today['break_start'] ?? '-')) ?></p>
         <p class="mb-1">Istirahat Selesai: <?= h((string) ($today['break_end'] ?? '-')) ?></p>
         <p class="mb-1">Pulang: <?= h((string) ($today['check_out'] ?? '-')) ?></p>
+        <div class="mb-1">Foto Bukti: <?php render_attendance_photo_preview((string) ($today['evidence_photo'] ?? '')); ?></div>
         <p class="mb-0">Status: <strong><?= h((string) ($today['status'] ?? 'belum ada data')) ?></strong></p>
     </div></div>
+    <script>
+        (function () {
+            var bindFileName = function (inputId, outputId) {
+                var input = document.getElementById(inputId);
+                var output = document.getElementById(outputId);
+                if (!input || !output) {
+                    return;
+                }
+
+                input.addEventListener('change', function () {
+                    output.textContent = input.files && input.files.length > 0
+                        ? input.files[0].name
+                        : 'Belum ada foto dipilih.';
+                });
+            };
+
+            bindFileName('attendance_evidence_camera', 'attendance_evidence_camera_name');
+            bindFileName('attendance_evidence_gallery', 'attendance_evidence_gallery_name');
+        })();
+    </script>
     <?php
     render_footer();
 }
 
 function page_schedules(array $u, ?array $flash): void {
+    db()->exec("UPDATE schedules SET acknowledged_seen_at=NOW() WHERE acknowledged_at IS NOT NULL AND acknowledged_seen_at IS NULL");
     render_header('Kelola Jadwal', $u, $flash);
     $employees = db()->query("SELECT id, name FROM users WHERE role='karyawan' ORDER BY name")->fetchAll();
     $editingId = (int) ($_GET['edit_schedule_id'] ?? 0);
@@ -313,13 +384,14 @@ function page_verify_attendance(array $u, ?array $flash): void {
     <div class="card"><div class="card-body">
         <h5>Data Absensi</h5>
         <div class="table-responsive"><table class="table table-sm table-striped align-middle">
-            <thead><tr><th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
+            <thead><tr><th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Bukti Foto</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
             <?php foreach ($rows as $r): ?>
                 <tr>
                     <td><?= h((string) $r['attendance_date']) ?></td>
                     <td><?= h((string) $r['name']) ?></td>
                     <td><?= h((string) ($r['check_in'] ?? '-')) ?></td>
                     <td><?= h((string) ($r['check_out'] ?? '-')) ?></td>
+                    <td><?php render_attendance_photo_preview((string) ($r['evidence_photo'] ?? '')); ?></td>
                     <td><span class="badge bg-<?= badge_class((string) $r['status']) ?>"><?= h((string) $r['status']) ?></span></td>
                     <td>
                         <form method="post" class="d-flex gap-1">
@@ -476,6 +548,26 @@ function page_employees(array $u, ?array $flash): void {
             <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100"><?= $editingEmployee ? 'Update' : 'Tambah' ?></button></div>
         </form>
     </div></div>
+    <?php if (!$editingEmployee): ?>
+        <div class="card mb-3"><div class="card-body">
+            <h5 class="mb-1">Import Karyawan dari CSV</h5>
+            <p class="text-muted mb-2">Upload file CSV untuk menambahkan banyak karyawan sekaligus.</p>
+            <div class="mb-3">
+                <a href="?page=employees&download=employee_template_csv" class="btn btn-outline-secondary">Download Template CSV</a>
+            </div>
+            <form method="post" enctype="multipart/form-data" class="row g-2 align-items-end">
+                <input type="hidden" name="action" value="import_employees_csv">
+                <div class="col-md-8">
+                    <label class="form-label">File CSV Karyawan</label>
+                    <input type="file" name="employees_csv" class="form-control" accept=".csv,text/csv" required>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-outline-primary w-100">Import CSV</button>
+                </div>
+            </form>
+            <div class="small text-muted mt-2">Gunakan file template agar format kolom sesuai.</div>
+        </div></div>
+    <?php endif; ?>
     <div class="card"><div class="card-body">
         <h5>Daftar Karyawan</h5>
         <div class="table-responsive"><table class="table table-sm table-striped align-middle">
@@ -675,6 +767,7 @@ function page_audit(array $u, ?array $flash): void {
 }
 
 function page_feedback_inbox(array $u, ?array $flash): void {
+    db()->exec("UPDATE feedbacks SET admin_seen_at=NOW() WHERE admin_seen_at IS NULL");
     render_header('Feedback Masuk', $u, $flash);
     $rows = db()->query('SELECT f.*, u.name, u.username FROM feedbacks f JOIN users u ON u.id=f.user_id ORDER BY f.created_at DESC LIMIT 200')->fetchAll();
     ?>

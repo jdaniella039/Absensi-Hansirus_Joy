@@ -7,6 +7,7 @@ Thumbs.db
 
 /storage/*.log
 /storage/composer-home/
+/storage/attendance_evidence/
 /storage/leave_evidence/
 /laravel-app/public/uploads/leave-evidence/
 
