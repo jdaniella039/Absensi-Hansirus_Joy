@@ -12,6 +12,7 @@ Thumbs.db
 /storage/proposal_extract.txt
 /laravel-app/public/uploads/attendance-evidence/
 /laravel-app/public/uploads/leave-evidence/
+/deploy/
 
 /vendor/
 /node_modules/
