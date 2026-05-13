@@ -9,6 +9,8 @@ Thumbs.db
 /storage/composer-home/
 /storage/attendance_evidence/
 /storage/leave_evidence/
+/storage/proposal_extract.txt
+/laravel-app/public/uploads/attendance-evidence/
 /laravel-app/public/uploads/leave-evidence/
 
 /vendor/

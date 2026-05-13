@@ -8,6 +8,23 @@ const APP_NAME = 'Portal Absensi PT. Hansirus Agro Andalan';
 
 load_env(dirname(__DIR__) . '/.env');
 
+function env_value(string $name, ?string $default = null): ?string {
+    if (array_key_exists($name, $_ENV) && $_ENV[$name] !== '') {
+        return (string) $_ENV[$name];
+    }
+
+    if (array_key_exists($name, $_SERVER) && $_SERVER[$name] !== '') {
+        return (string) $_SERVER[$name];
+    }
+
+    $value = getenv($name);
+    if ($value !== false && $value !== '') {
+        return (string) $value;
+    }
+
+    return $default;
+}
+
 function load_env(string $path): void {
     static $loaded = false;
     if ($loaded || !is_file($path)) {
@@ -33,6 +50,11 @@ function load_env(string $path): void {
             continue;
         }
 
+        // Handle UTF-8 BOM on the first key.
+        if (str_starts_with($name, "\xEF\xBB\xBF")) {
+            $name = substr($name, 3);
+        }
+
         if (
             (str_starts_with($value, '"') && str_ends_with($value, '"')) ||
             (str_starts_with($value, "'") && str_ends_with($value, "'"))
@@ -40,10 +62,10 @@ function load_env(string $path): void {
             $value = substr($value, 1, -1);
         }
 
-        if (getenv($name) === false) {
-            putenv("{$name}={$value}");
-            $_ENV[$name] = $value;
-            $_SERVER[$name] = $value;
+        $_ENV[$name] = $value;
+        $_SERVER[$name] = $value;
+        if (function_exists('putenv')) {
+            @putenv("{$name}={$value}");
         }
     }
 
@@ -58,15 +80,15 @@ function db(): PDO {
 
     $dsn = sprintf(
         'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
-        getenv('DB_HOST') ?: '127.0.0.1',
-        getenv('DB_PORT') ?: '3306',
-        getenv('DB_DATABASE') ?: 'absensi_hansirus'
+        env_value('DB_HOST', '127.0.0.1'),
+        env_value('DB_PORT', '3306'),
+        env_value('DB_DATABASE', 'absensi_hansirus')
     );
 
     $pdo = new PDO(
         $dsn,
-        getenv('DB_USERNAME') ?: 'root',
-        getenv('DB_PASSWORD') ?: '',
+        env_value('DB_USERNAME', 'root'),
+        env_value('DB_PASSWORD', ''),
         [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -201,14 +223,41 @@ function ensure_schema(PDO $pdo): void {
 }
 
 function ensure_seed(PDO $pdo): void {
-    $count = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
-    if ($count > 0) {
-        return;
-    }
+    $defaults = [
+        [
+            'name' => 'Administrator',
+            'username' => 'admin',
+            'password' => 'admin123',
+            'role' => 'admin',
+            'position' => 'Admin HRD',
+        ],
+        [
+            'name' => 'Karyawan Hansirus',
+            'username' => 'karyawan',
+            'password' => 'karyawan123',
+            'role' => 'karyawan',
+            'position' => 'BHL Lapangan',
+        ],
+    ];
 
-    $stmt = $pdo->prepare('INSERT INTO users (name, username, password_hash, role, position) VALUES (?, ?, ?, ?, ?)');
-    $stmt->execute(['Administrator', 'admin', password_hash('admin123', PASSWORD_DEFAULT), 'admin', 'Admin HRD']);
-    $stmt->execute(['Karyawan Hansirus', 'karyawan', password_hash('karyawan123', PASSWORD_DEFAULT), 'karyawan', 'BHL Lapangan']);
+    $existsStmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE username = ?');
+    $insertStmt = $pdo->prepare('INSERT INTO users (name, username, password_hash, role, position) VALUES (?, ?, ?, ?, ?)');
+
+    foreach ($defaults as $row) {
+        $existsStmt->execute([$row['username']]);
+        $exists = (int) $existsStmt->fetchColumn() > 0;
+        if ($exists) {
+            continue;
+        }
+
+        $insertStmt->execute([
+            $row['name'],
+            $row['username'],
+            password_hash($row['password'], PASSWORD_DEFAULT),
+            $row['role'],
+            $row['position'],
+        ]);
+    }
 }
 
 function user(): ?array {

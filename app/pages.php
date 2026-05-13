@@ -83,17 +83,30 @@ function page_login(?array $u, ?array $flash): void {
             <div class="col-lg-4">
                 <div class="card shadow-sm"><div class="card-body p-4">
                     <h4 class="text-center mb-1">Masuk ke Sistem</h4>
-                    <p class="small text-muted text-center">Gunakan akun admin atau karyawan untuk demo.</p>
+                    <p class="small text-muted text-center">Masukkan username dan password untuk masuk ke portal absensi.</p>
                     <form method="post" class="mt-3">
                         <input type="hidden" name="action" value="login">
                         <div class="mb-2"><label class="form-label">Username</label><input name="username" class="form-control" required></div>
-                        <div class="mb-3"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
+                        <div class="mb-3">
+                            <label class="form-label" for="login-password">Password</label>
+                            <div class="password-field">
+                                <input id="login-password" type="password" name="password" class="form-control" autocomplete="current-password" required>
+                                <button type="button" class="password-toggle" data-password-toggle="login-password" aria-label="Lihat password" title="Lihat password">
+                                    <svg class="password-icon password-icon-eye" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg class="password-icon password-icon-off" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M3 3l18 18"></path>
+                                        <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4"></path>
+                                        <path d="M7.1 7.1C3.8 8.9 2 12 2 12s3.5 6.5 10 6.5c1.6 0 3-.4 4.2-.9"></path>
+                                        <path d="M12 5.5c6.5 0 10 6.5 10 6.5a16 16 0 0 1-2.7 3.5"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                         <button class="btn btn-primary w-100">Masuk</button>
                     </form>
-                    <hr>
-                    <p class="small mb-1">Akun awal:</p>
-                    <p class="small mb-0">Admin: <code>admin / admin123</code></p>
-                    <p class="small mb-0">Karyawan: <code>karyawan / karyawan123</code></p>
                 </div></div>
             </div>
         </div>
@@ -319,7 +332,7 @@ function page_schedules(array $u, ?array $flash): void {
                         <td>
                             <div class="d-flex gap-1">
                                 <a href="?page=schedules&edit_schedule_id=<?= (int) $r['id'] ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                                <form method="post" onsubmit="return confirm('Hapus jadwal ini?')">
+                                <form method="post" data-confirm-submit="Yakin hapus jadwal ini?">
                                     <input type="hidden" name="action" value="delete_schedule">
                                     <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
                                     <button class="btn btn-sm btn-outline-danger">Hapus</button>
@@ -468,7 +481,7 @@ function page_leave_approval(array $u, ?array $flash): void {
                                 <input name="admin_note" class="form-control form-control-sm" placeholder="Catatan"><button class="btn btn-sm btn-primary">Simpan</button>
                             </form>
                         </div>
-                        <form method="post" onsubmit="return confirm('Hapus data izin ini beserta file buktinya?')">
+                        <form method="post" data-confirm-submit="Yakin hapus data izin ini beserta file buktinya?">
                             <input type="hidden" name="action" value="delete_leave">
                             <input type="hidden" name="leave_id" value="<?= (int) $r['id'] ?>">
                             <button class="btn btn-sm btn-outline-danger">Hapus</button>
@@ -569,12 +582,30 @@ function page_employees(array $u, ?array $flash): void {
         </div></div>
     <?php endif; ?>
     <div class="card"><div class="card-body">
-        <h5>Daftar Karyawan</h5>
+        <div class="employee-list-head">
+            <div>
+                <h5 class="mb-1">Daftar Karyawan</h5>
+                <div class="small text-muted">
+                    <span data-employee-visible-count><?= count($rows) ?></span> dari <?= count($rows) ?> karyawan ditampilkan
+                </div>
+            </div>
+            <div class="employee-search">
+                <label for="employee-search" class="form-label visually-hidden">Cari karyawan</label>
+                <input id="employee-search" type="search" class="form-control" placeholder="Cari nama, username, atau jabatan" autocomplete="off" data-employee-search>
+            </div>
+        </div>
         <div class="table-responsive"><table class="table table-sm table-striped align-middle">
             <thead><tr><th>Nama</th><th>Username</th><th>Jabatan</th><th>Dibuat</th><th>Aksi</th></tr></thead>
             <tbody>
             <?php foreach ($rows as $r): ?>
-                <tr>
+                <?php
+                    $employeeSearchText = strtolower(trim(implode(' ', [
+                        (string) $r['name'],
+                        (string) $r['username'],
+                        (string) ($r['position'] ?? ''),
+                    ])));
+                ?>
+                <tr data-employee-row data-employee-search-text="<?= h($employeeSearchText) ?>">
                     <td><?= h((string) $r['name']) ?></td>
                     <td><?= h((string) $r['username']) ?></td>
                     <td><?= h((string) ($r['position'] ?? '-')) ?></td>
@@ -582,7 +613,7 @@ function page_employees(array $u, ?array $flash): void {
                     <td>
                         <div class="d-flex gap-1 mb-1">
                             <a href="?page=employees&edit_employee_id=<?= (int) $r['id'] ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form method="post" onsubmit="return confirm('Hapus karyawan ini beserta data terkait?')">
+                            <form method="post" data-confirm-submit="Yakin hapus karyawan ini beserta semua data terkait?">
                                 <input type="hidden" name="action" value="delete_employee">
                                 <input type="hidden" name="employee_id" value="<?= (int) $r['id'] ?>">
                                 <button class="btn btn-sm btn-outline-danger">Hapus</button>
@@ -597,6 +628,9 @@ function page_employees(array $u, ?array $flash): void {
                     </td>
                 </tr>
             <?php endforeach; ?>
+                <tr class="d-none" data-employee-empty-row>
+                    <td colspan="5" class="text-center text-muted py-4">Tidak ada karyawan yang cocok dengan pencarian.</td>
+                </tr>
             </tbody>
         </table></div>
     </div></div>

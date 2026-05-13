@@ -39,17 +39,11 @@ switch ($page) {
     case 'employees':
         need_admin();
         if (($_GET['download'] ?? '') === 'employee_template_csv') {
-            $templatePath = __DIR__ . '/storage/employee-import-template.csv';
-            if (!is_file($templatePath)) {
-                render_header('Template Tidak Ditemukan', $u, $flash);
-                echo "<div class='alert alert-danger'>Template CSV tidak ditemukan.</div>";
-                render_footer();
-                break;
-            }
-
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename=employee-import-template.csv');
-            readfile($templatePath);
+            echo "sep=;\n";
+            echo "nama;username;jabatan;password\n";
+            echo "Contoh Karyawan;contoh_karyawan;Karyawan Lapangan;password123\n";
             exit;
         }
         page_employees($u, $flash);

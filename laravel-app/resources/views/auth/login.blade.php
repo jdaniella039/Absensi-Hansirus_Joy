@@ -15,7 +15,7 @@
         <div class="card">
             <div class="card-body p-4">
                 <h3 class="text-center mb-1">Masuk ke Sistem</h3>
-                <p class="text-muted text-center">Gunakan akun admin atau karyawan.</p>
+                <p class="text-muted text-center">Masukkan username dan password untuk masuk ke portal absensi.</p>
                 <form method="post" action="{{ route('login.store') }}">
                     @csrf
                     <div class="mb-3">
@@ -28,9 +28,6 @@
                     </div>
                     <button class="btn btn-primary w-100">Masuk</button>
                 </form>
-                <hr>
-                <div class="small">Admin: <code>admin / admin123</code></div>
-                <div class="small">Karyawan: <code>karyawan / karyawan123</code></div>
             </div>
         </div>
     </div>

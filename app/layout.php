@@ -238,6 +238,18 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             color: #5d6a65;
         }
 
+        .employee-list-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .employee-search {
+            width: min(100%, 420px);
+        }
+
         .login-wrap {
             min-height: calc(100vh - 120px);
             display: flex;
@@ -252,6 +264,57 @@ function render_header(string $title, ?array $u, ?array $flash): void {
         .login-hero-subtitle {
             font-size: 1.25rem;
             color: rgba(255,255,255,0.78);
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-field .form-control {
+            padding-right: 3.25rem;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 0.35rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #66756f;
+            transform: translateY(-50%);
+            transition: color 0.16s ease, background-color 0.16s ease;
+        }
+
+        .password-toggle:hover,
+        .password-toggle:focus-visible {
+            color: var(--brand-900);
+            background: #eef5f1;
+            outline: 0;
+        }
+
+        .password-icon {
+            width: 1.18rem;
+            height: 1.18rem;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .password-icon-off,
+        .password-toggle.is-visible .password-icon-eye {
+            display: none;
+        }
+
+        .password-toggle.is-visible .password-icon-off {
+            display: block;
         }
 
         .file-picker-input {
@@ -346,6 +409,16 @@ function render_header(string $title, ?array $u, ?array $flash): void {
                 line-height: 1.2;
             }
 
+            .navbar-brand br {
+                display: none;
+            }
+
+            .navbar-brand small {
+                display: block;
+                margin-top: 0.15rem;
+                line-height: 1.15;
+            }
+
             #mainNav {
                 width: 100%;
                 margin-top: 0.9rem;
@@ -425,6 +498,14 @@ function render_header(string $title, ?array $u, ?array $flash): void {
                 padding-top: 0.5rem;
             }
 
+            .login-wrap > .row {
+                margin-inline: 0;
+            }
+
+            .login-wrap > .row > [class*="col-"] {
+                padding-inline: 0;
+            }
+
             .login-hero {
                 min-height: 320px !important;
             }
@@ -476,6 +557,16 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             code {
                 white-space: normal;
                 word-break: break-word;
+            }
+
+            .employee-list-head {
+                align-items: stretch;
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+
+            .employee-search {
+                width: 100%;
             }
         }
     </style>
@@ -555,5 +646,76 @@ function render_header(string $title, ?array $u, ?array $flash): void {
 }
 
 function render_footer(): void {
-    echo '</div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script></body></html>';
+    echo <<<'HTML'
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
+    var input = document.getElementById(button.getAttribute('data-password-toggle'));
+    if (!input) {
+        return;
+    }
+
+    button.addEventListener('click', function () {
+        var shouldShow = input.type === 'password';
+        input.type = shouldShow ? 'text' : 'password';
+        button.classList.toggle('is-visible', shouldShow);
+
+        var label = shouldShow ? 'Sembunyikan password' : 'Lihat password';
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
+    });
+});
+
+document.querySelectorAll('form[data-confirm-submit]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        var message = form.getAttribute('data-confirm-submit') || 'Yakin lanjutkan aksi ini?';
+        if (!window.confirm(message)) {
+            event.preventDefault();
+        }
+    });
+});
+
+(function () {
+    var searchInput = document.querySelector('[data-employee-search]');
+    if (!searchInput) {
+        return;
+    }
+
+    var rows = Array.prototype.slice.call(document.querySelectorAll('[data-employee-row]'));
+    var emptyRow = document.querySelector('[data-employee-empty-row]');
+    var visibleCount = document.querySelector('[data-employee-visible-count]');
+    var normalize = function (value) {
+        return String(value || '').toLowerCase().trim();
+    };
+
+    var filterRows = function () {
+        var keyword = normalize(searchInput.value);
+        var shown = 0;
+
+        rows.forEach(function (row) {
+            var haystack = normalize(row.getAttribute('data-employee-search-text') || row.textContent);
+            var isMatch = keyword === '' || haystack.indexOf(keyword) !== -1;
+            row.classList.toggle('d-none', !isMatch);
+            if (isMatch) {
+                shown++;
+            }
+        });
+
+        if (emptyRow) {
+            emptyRow.classList.toggle('d-none', shown !== 0);
+        }
+
+        if (visibleCount) {
+            visibleCount.textContent = shown;
+        }
+    };
+
+    searchInput.addEventListener('input', filterRows);
+    filterRows();
+})();
+</script>
+</body>
+</html>
+HTML;
 }

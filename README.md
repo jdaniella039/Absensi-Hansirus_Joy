@@ -1,35 +1,47 @@
 # Sistem Absensi PT. Hansirus Agro Andalan
 
-Implementasi awal sistem absensi berbasis web sesuai proposal TA.
+Sistem absensi karyawan berbasis web untuk PT. Hansirus Agro Andalan. Aplikasi ini memakai PHP native dan MariaDB.
 
-## Fitur yang sudah dibuat
+## Fitur Utama
 
-- Autentikasi login + RBAC (`admin`, `karyawan`)
-- Absensi karyawan: masuk, mulai istirahat, selesai istirahat, pulang
-- Verifikasi absensi oleh admin (approve/reject + catatan)
-- Manajemen jadwal kerja oleh admin (tambah, edit, hapus)
-- Lihat dan konfirmasi jadwal kerja oleh karyawan
-- Pengajuan izin karyawan
-- Pengajuan izin karyawan + upload bukti file
+- Login dengan role `admin` dan `karyawan`
+- Absensi karyawan: masuk, mulai istirahat, selesai istirahat, dan pulang
+- Upload foto bukti absensi dari kamera atau galeri
+- Verifikasi absensi oleh admin
+- Manajemen jadwal kerja
+- Konfirmasi jadwal oleh karyawan
+- Pengajuan izin dengan upload bukti
 - Persetujuan izin oleh admin
+- Manajemen data karyawan, termasuk import CSV dan reset password
 - Pengelolaan profil pengguna
-- Manajemen data karyawan oleh admin (tambah, edit, hapus, reset password)
-- Feedback karyawan
-- Inbox feedback untuk admin
+- Feedback karyawan dan inbox feedback admin
 - Audit log aktivitas
-- Laporan absensi (periode hari/minggu/bulan + ringkasan hadir/izin/terlambat/absen) + export CSV
+- Laporan absensi dan export CSV
 - Export audit log CSV
+
+## Struktur Singkat
+
+```text
+.
+|-- app/                  # Logic aplikasi PHP native
+|-- resources/            # Resource/view tambahan
+|-- routes/               # Route sederhana
+|-- storage/              # File demo, template CSV, upload, dan asset
+|-- index.php             # Entry point aplikasi utama
+`-- .env.example          # Contoh konfigurasi database
+```
 
 ## Persiapan
 
-1. Pastikan PHP 8.1+ dan MySQL aktif.
-2. Buat database MySQL:
+1. Pastikan PHP 8.1+ dan MariaDB aktif.
+2. Buat database MariaDB:
 
 ```sql
 CREATE DATABASE absensi_hansirus CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-3. Buat file `.env` dari `.env.example`, lalu isi koneksi database Anda:
+3. Salin `.env.example` menjadi `.env`.
+4. Isi koneksi database di `.env`:
 
 ```env
 DB_HOST=127.0.0.1
@@ -39,51 +51,98 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Jika Anda memakai Herd, XAMPP, atau Laragon dengan port/user/password berbeda, sesuaikan nilainya di file `.env`.
+Jika memakai XAMPP, Laragon, atau Herd dengan port/user/password berbeda, sesuaikan nilai di `.env`.
 
-## Menjalankan
+## Menjalankan Aplikasi
+
+Untuk akses dari laptop sendiri:
 
 ```bash
 php -S 127.0.0.1:8000
 ```
 
-Buka: `http://127.0.0.1:8000`
+Buka:
 
-## Akun awal
+```text
+http://127.0.0.1:8000
+```
+
+Untuk akses dari HP dalam jaringan WiFi yang sama:
+
+```bash
+php -S 0.0.0.0:8000
+```
+
+Lalu buka dari HP memakai IP laptop, contoh:
+
+```text
+http://192.168.1.3:8000
+```
+
+Catatan: `0.0.0.0` dipakai untuk menjalankan server, bukan untuk dibuka langsung di browser.
+
+## Akun Awal
+
+Akun awal otomatis dibuat saat aplikasi pertama kali mengakses database.
 
 - Admin: `admin / admin123`
 - Karyawan: `karyawan / karyawan123`
 
-## Data Dummy Demo
+## Data Karyawan
 
-Jika ingin menyiapkan data demo sidang dengan cepat, import file [storage/demo-seed.sql](/c:/DATA%20JOY/Tugas/TA/absensi-hansirus/storage/demo-seed.sql) ke database `absensi_hansirus`.
+Data karyawan disimpan di tabel `users` pada database MariaDB `absensi_hansirus`. Data ini tidak expired dan tidak perlu diperbarui setiap bulan.
 
-Akun demo tambahan setelah import:
+Data dapat hilang jika:
 
-- Admin: `admin / admin123`
-- Karyawan: `budi / demo123`
-- Karyawan: `siti / demo123`
-- Karyawan: `andi / demo123`
-- Karyawan: `rina / demo123`
-- Karyawan: `dewi / demo123`
+- Database MariaDB dihapus/reset
+- File `.env` diarahkan ke database lain
+- Karyawan dihapus lewat tombol `Hapus`
+- Script demo seed dijalankan ulang
 
-Import di HeidiSQL:
+Jadwal kerja berbeda dengan data karyawan. Jadwal perlu diisi sesuai tanggal atau periode kerja yang dibutuhkan.
 
-1. Pilih database `absensi_hansirus`
-2. Buka file `storage/demo-seed.sql`
-3. Jalankan semua query
+## Import Karyawan CSV
 
-Catatan:
+Admin dapat menambahkan banyak karyawan sekaligus melalui halaman `Karyawan`.
 
-- Script ini akan menghapus data lama lalu menggantinya dengan data demo baru.
-- Data demo mencakup jadwal, absensi dengan status `approved/pending/rejected`, izin, feedback, dan audit log.
+Langkah umum:
 
-## Catatan
+1. Buka halaman `Karyawan`.
+2. Klik `Download Template CSV`.
+3. Isi data karyawan sesuai format template.
+4. Upload file CSV lewat form `Import Karyawan dari CSV`.
 
-- Tabel database dibuat otomatis saat aplikasi pertama kali diakses.
-- Seed akun awal dibuat otomatis jika tabel `users` masih kosong.
-- Implementasi ini memakai PHP native agar cepat dieksekusi dari struktur repo saat ini (repo belum berisi struktur Laravel lengkap).
-- Konfigurasi database dibaca dari file `.env` jika tersedia, lalu fallback ke environment variable/default.
-- Validasi dasar sudah mencakup urutan absensi dan pencegahan jadwal ganda pada tanggal yang sama untuk karyawan yang sama.
-- Bukti izin disimpan ke folder `storage/leave_evidence` dengan format file `JPG`, `JPEG`, `PNG`, atau `PDF` maksimal `2 MB`.
-- Bukti izin gambar ditampilkan sebagai thumbnail kecil, file PDF diberi tombol buka, dan saat admin menghapus data izin file buktinya ikut dihapus.
+Kolom yang dipakai:
+
+- `nama`
+- `username`
+- `jabatan`
+- `password`
+
+Import CSV hanya menambah data baru. Jika ada username yang sudah dipakai, import dibatalkan agar data lama tidak tertimpa.
+
+## Catatan Teknis
+
+- Tabel database dibuat otomatis saat aplikasi pertama kali dibuka.
+- Konfigurasi database dibaca dari `.env`.
+- Bukti absensi disimpan di `storage/attendance_evidence`.
+- Bukti izin disimpan di `storage/leave_evidence`.
+- Format bukti izin: `JPG`, `JPEG`, `PNG`, atau `PDF`, maksimal `2 MB`.
+- Format bukti absensi: `JPG`, `JPEG`, atau `PNG`, maksimal `2 MB`.
+- File log dan cache tidak perlu masuk Git karena bisa dibuat ulang.
+
+## Backup Database
+
+Disarankan backup database sebelum demo, sebelum import besar, atau sebelum mengubah data dalam jumlah banyak.
+
+Contoh backup:
+
+```bash
+mariadb-dump -u root absensi_hansirus > backup_absensi_hansirus.sql
+```
+
+Jika MariaDB memakai password:
+
+```bash
+mariadb-dump -u root -p absensi_hansirus > backup_absensi_hansirus.sql
+```
