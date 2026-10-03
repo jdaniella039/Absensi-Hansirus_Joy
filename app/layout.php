@@ -1,9 +1,14 @@
 <?php
+
+// Mengaktifkan mode tipe ketat untuk file layout.
 declare(strict_types=1);
 
+// Layout membutuhkan helper dari bootstrap seperti h(), user(), db(), dan APP_NAME.
 require_once __DIR__ . '/bootstrap.php';
 
+// Menentukan menu navigasi berdasarkan role user.
 function navigation_items(array $u): array {
+    // Menu admin berisi fitur pengelolaan dan validasi data.
     if (($u['role'] ?? '') === 'admin') {
         return [
             'dashboard' => 'Dashboard',
@@ -17,6 +22,7 @@ function navigation_items(array $u): array {
         ];
     }
 
+    // Menu karyawan hanya berisi fitur yang dipakai user karyawan.
     return [
         'dashboard' => 'Dashboard',
         'attendance' => 'Absensi',
@@ -27,12 +33,19 @@ function navigation_items(array $u): array {
     ];
 }
 
+// Mencetak bagian awal HTML: head, CSS, navbar, hero, dan flash message.
 function render_header(string $title, ?array $u, ?array $flash): void {
+    // Tentukan halaman aktif untuk memberi class active pada menu.
     $currentPage = (string) ($_GET['page'] ?? ($u ? 'dashboard' : 'login'));
+
+    // Ambil menu sesuai user login; jika belum login, menu dikosongkan.
     $navItems = $u ? navigation_items($u) : [];
+
+    // Badge dipakai untuk angka notifikasi di menu.
     $navBadges = [];
     $mobileNavHasNotifications = false;
 
+    // Admin melihat jumlah item yang perlu ditindaklanjuti.
     if ($u && ($u['role'] ?? '') === 'admin') {
         $navBadges = [
             'schedules' => (int) db()->query("SELECT COUNT(*) FROM schedules WHERE acknowledged_at IS NOT NULL AND acknowledged_seen_at IS NULL")->fetchColumn(),
@@ -41,6 +54,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             'feedback_inbox' => (int) db()->query("SELECT COUNT(*) FROM feedbacks WHERE admin_seen_at IS NULL")->fetchColumn(),
         ];
     } elseif ($u && ($u['role'] ?? '') === 'karyawan') {
+        // Karyawan melihat jumlah jadwal yang belum dikonfirmasi.
         $scheduleBadgeStmt = db()->prepare("SELECT COUNT(*) FROM schedules WHERE user_id=? AND acknowledged_at IS NULL");
         $scheduleBadgeStmt->execute([(int) $u['id']]);
         $navBadges = [
@@ -48,6 +62,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
         ];
     }
 
+    // Di tampilan mobile, titik notifikasi muncul jika ada minimal satu badge.
     $mobileNavHasNotifications = array_sum($navBadges) > 0;
     ?>
 <!doctype html>
@@ -61,6 +76,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* Variabel warna utama aplikasi agar styling konsisten. */
         :root {
             --brand-900: #16302b;
             --brand-700: #245347;
@@ -70,6 +86,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             --ink-700: #34423d;
         }
 
+        /* Tampilan dasar body: font, warna teks, dan background halaman. */
         body {
             min-height: 100vh;
             font-family: 'Inter', sans-serif;
@@ -79,6 +96,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
                 linear-gradient(180deg, #f8f6f1 0%, #edf3ef 100%);
         }
 
+        /* Heading dan tombol memakai font display agar terlihat lebih tegas. */
         h1,
         h2,
         h3,
@@ -92,10 +110,12 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             font-family: 'Poppins', sans-serif;
         }
 
+        /* Wrapper konten utama agar ada ruang bawah halaman. */
         .app-shell {
             padding-bottom: 3rem;
         }
 
+        /* Panel hero di atas halaman setelah user login. */
         .hero-panel {
             color: #fff;
             border: 0;
@@ -104,16 +124,19 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             box-shadow: 0 16px 40px rgba(22, 48, 43, 0.18);
         }
 
+        /* Teks muted khusus di panel hero yang berlatar gelap. */
         .hero-panel .muted {
             color: rgba(255,255,255,0.78);
         }
 
+        /* Navbar utama dengan efek blur dan warna brand. */
         .glass-nav {
             backdrop-filter: blur(12px);
             background: rgba(22, 48, 43, 0.92);
             box-shadow: 0 10px 30px rgba(22, 48, 43, 0.16);
         }
 
+        /* Kotak kecil berisi inisial brand di navbar. */
         .brand-mark {
             width: 40px;
             height: 40px;
@@ -125,11 +148,13 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             background: rgba(255,255,255,0.12);
         }
 
+        /* Pembungkus tombol menu mobile supaya bisa diberi titik notifikasi. */
         .mobile-nav-toggle-wrap {
             position: relative;
             display: inline-flex;
         }
 
+        /* Titik notifikasi kecil di hamburger menu mobile. */
         .mobile-nav-dot {
             position: absolute;
             top: -2px;
@@ -142,18 +167,23 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
         }
 
+
+
+        /* Tampilan link navigasi di navbar. */
         .nav-pills-demo .nav-link {
             color: rgba(255,255,255,0.78);
             border-radius: 999px;
             padding-inline: 0.9rem;
         }
 
+        /* State aktif dan hover untuk menu navigasi. */
         .nav-pills-demo .nav-link.active,
         .nav-pills-demo .nav-link:hover {
             color: #fff;
             background: rgba(255,255,255,0.12);
         }
 
+        /* Badge angka pada menu yang punya notifikasi. */
         .nav-badge {
             display: inline-flex;
             align-items: center;
@@ -171,10 +201,12 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             vertical-align: middle;
         }
 
+        /* Badge tertentu hanya ditampilkan pada layar mobile. */
         .nav-badge-mobile-only {
             display: none;
         }
 
+        /* Styling umum untuk kartu konten. */
         .content-card,
         .card {
             border: 0;
@@ -182,25 +214,30 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             box-shadow: 0 12px 30px rgba(37, 54, 46, 0.08);
         }
 
+        /* Padding isi kartu dibuat konsisten. */
         .card .card-body {
             padding: 1.25rem 1.25rem;
         }
 
+        /* Judul section di dalam kartu. */
         .section-title {
             font-weight: 700;
             color: var(--brand-900);
             letter-spacing: 0.02em;
         }
 
+        /* Kartu angka statistik pada dashboard. */
         .stat-tile {
             color: #fff;
             background: linear-gradient(135deg, var(--brand-700), var(--brand-500));
         }
 
+        /* Tabel dibuat transparan agar mengikuti warna kartu. */
         .table {
             --bs-table-bg: transparent;
         }
 
+        /* Header tabel dibuat kecil dan uppercase. */
         .table thead th {
             font-size: 0.82rem;
             text-transform: uppercase;
@@ -209,16 +246,19 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             border-bottom-width: 1px;
         }
 
+        /* Container tabel responsif diberi radius agar rapi. */
         .table-responsive {
             border-radius: 16px;
         }
 
+        /* Input, select, dan tombol memakai radius yang sama. */
         .form-control,
         .form-select,
         .btn {
             border-radius: 12px;
         }
 
+        /* Warna tombol utama mengikuti warna brand. */
         .btn-primary {
             background-color: var(--brand-700);
             border-color: var(--brand-700);
@@ -229,6 +269,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             border-color: var(--brand-900);
         }
 
+        /* Spasi judul halaman. */
         .page-head {
             margin-bottom: 1.25rem;
         }
@@ -238,6 +279,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             color: #5d6a65;
         }
 
+        /* Header daftar karyawan berisi judul dan search. */
         .employee-list-head {
             display: flex;
             align-items: center;
@@ -246,26 +288,31 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             margin-bottom: 1rem;
         }
 
+        /* Lebar input search karyawan. */
         .employee-search {
             width: min(100%, 420px);
         }
 
+        /* Wrapper halaman login agar card berada di tengah layar. */
         .login-wrap {
             min-height: calc(100vh - 120px);
             display: flex;
             align-items: center;
         }
 
+        /* Ukuran judul hero login yang responsif. */
         .login-hero-title {
             font-size: clamp(2rem, 2vw + 1.2rem, 3rem);
             line-height: 1.15;
         }
 
+        /* Subtitle di hero login. */
         .login-hero-subtitle {
             font-size: 1.25rem;
             color: rgba(255,255,255,0.78);
         }
 
+        /* Field password dibuat relative supaya tombol mata bisa diposisikan di dalam input. */
         .password-field {
             position: relative;
         }
@@ -274,6 +321,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             padding-right: 3.25rem;
         }
 
+        /* Tombol lihat/sembunyikan password. */
         .password-toggle {
             position: absolute;
             top: 50%;
@@ -291,6 +339,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             transition: color 0.16s ease, background-color 0.16s ease;
         }
 
+        /* State hover/focus pada tombol password. */
         .password-toggle:hover,
         .password-toggle:focus-visible {
             color: var(--brand-900);
@@ -298,6 +347,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             outline: 0;
         }
 
+        /* Ukuran icon mata password. */
         .password-icon {
             width: 1.18rem;
             height: 1.18rem;
@@ -308,15 +358,18 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             stroke-linejoin: round;
         }
 
+        /* Icon mata dicoret disembunyikan saat password belum terlihat. */
         .password-icon-off,
         .password-toggle.is-visible .password-icon-eye {
             display: none;
         }
 
+        /* Saat password terlihat, icon mata dicoret ditampilkan. */
         .password-toggle.is-visible .password-icon-off {
             display: block;
         }
 
+        /* Input file versi mobile disembunyikan secara visual dan diganti tombol custom. */
         .file-picker-input {
             position: absolute;
             width: 1px;
@@ -329,6 +382,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             border: 0;
         }
 
+        /* Tombol custom untuk memilih file di mobile. */
         .file-picker-trigger {
             display: flex;
             align-items: center;
@@ -347,6 +401,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             transition: all 0.18s ease;
         }
 
+        /* State hover tombol pilih file. */
         .file-picker-trigger:hover {
             border-color: var(--brand-500);
             background: #eef5f1;
@@ -356,6 +411,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             flex: 0 0 auto;
         }
 
+        /* State focus input file custom. */
         .file-picker-input:focus + .file-picker-trigger,
         .file-picker-input:focus-visible + .file-picker-trigger {
             outline: 0;
@@ -363,6 +419,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             box-shadow: 0 0 0 0.2rem rgba(63, 125, 98, 0.15);
         }
 
+        /* Nama file yang dipilih pada mode mobile. */
         .file-picker-name {
             margin-top: 0.45rem;
             font-size: 0.88rem;
@@ -370,6 +427,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             word-break: break-word;
         }
 
+        /* Aturan khusus tablet/desktop. */
         @media (min-width: 768px) {
             .mobile-only {
                 display: none !important;
@@ -395,6 +453,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             }
         }
 
+        /* Aturan khusus navbar ketika layar mengecil. */
         @media (max-width: 991.98px) {
             .glass-nav .container {
                 align-items: flex-start;
@@ -446,6 +505,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             }
         }
 
+        /* Aturan khusus tampilan mobile. */
         @media (max-width: 767.98px) {
             body {
                 background:
@@ -574,6 +634,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark glass-nav mb-4">
     <div class="container">
+        <!-- Brand/logo aplikasi di kiri navbar. -->
         <a class="navbar-brand d-flex align-items-center gap-3" href="?page=dashboard">
             <span class="brand-mark">HA</span>
             <span>
@@ -582,6 +643,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
             </span>
         </a>
         <?php if ($u): ?>
+            <!-- Tombol menu mobile hanya tampil jika user sudah login. -->
             <span class="mobile-nav-toggle-wrap">
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
                     <span class="navbar-toggler-icon"></span>
@@ -591,6 +653,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
                 <?php endif; ?>
             </span>
             <div class="collapse navbar-collapse" id="mainNav">
+                <!-- Loop semua menu sesuai role user. -->
                 <ul class="navbar-nav nav-pills-demo me-auto ms-lg-4 mb-2 mb-lg-0">
                     <?php foreach ($navItems as $page => $label): ?>
                         <li class="nav-item">
@@ -598,6 +661,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
                                 <?= h($label) ?>
                                 <?php if (($navBadges[$page] ?? 0) > 0): ?>
                                     <?php
+                                    // Badge jadwal karyawan dibuat khusus supaya muncul di mobile saja.
                                     $badgeClass = 'nav-badge';
                                     if ($page === 'my_schedule') {
                                         $badgeClass .= ' nav-badge-mobile-only';
@@ -609,6 +673,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
                         </li>
                     <?php endforeach; ?>
                 </ul>
+                <!-- Area kanan navbar: link profil, identitas user, dan tombol logout. -->
                 <div class="d-flex flex-column flex-lg-row gap-2 align-items-lg-center text-white small">
                     <a href="?page=profile" class="btn btn-sm btn-outline-light">Profil</a>
                     <span><?= h((string) $u['name']) ?> (<?= h((string) $u['role']) ?>)</span>
@@ -623,6 +688,7 @@ function render_header(string $title, ?array $u, ?array $flash): void {
 </nav>
 <div class="container app-shell">
     <?php if ($u): ?>
+        <!-- Hero panel yang menampilkan judul halaman dan tanggal sistem. -->
         <div class="card hero-panel mb-4">
             <div class="card-body p-4 p-lg-5">
                 <div class="row align-items-center g-4">
@@ -640,16 +706,19 @@ function render_header(string $title, ?array $u, ?array $flash): void {
         </div>
     <?php endif; ?>
     <?php if ($flash): ?>
+        <!-- Flash message tampil sekali setelah proses seperti simpan/login/logout. -->
         <div class="alert alert-<?= h((string) $flash['type']) ?> border-0 shadow-sm"><?= h((string) $flash['message']) ?></div>
     <?php endif; ?>
     <?php
 }
 
+// Mencetak bagian akhir HTML: penutup container, script Bootstrap, dan JavaScript kecil.
 function render_footer(): void {
     echo <<<'HTML'
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Mengatur tombol lihat/sembunyikan password pada input yang punya data-password-toggle.
 document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
     var input = document.getElementById(button.getAttribute('data-password-toggle'));
     if (!input) {
@@ -667,6 +736,7 @@ document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
     });
 });
 
+// Menampilkan dialog konfirmasi sebelum form tertentu dikirim.
 document.querySelectorAll('form[data-confirm-submit]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
         var message = form.getAttribute('data-confirm-submit') || 'Yakin lanjutkan aksi ini?';
@@ -676,6 +746,7 @@ document.querySelectorAll('form[data-confirm-submit]').forEach(function (form) {
     });
 });
 
+// Fitur pencarian cepat pada tabel karyawan.
 (function () {
     var searchInput = document.querySelector('[data-employee-search]');
     if (!searchInput) {
@@ -686,6 +757,7 @@ document.querySelectorAll('form[data-confirm-submit]').forEach(function (form) {
     var emptyRow = document.querySelector('[data-employee-empty-row]');
     var visibleCount = document.querySelector('[data-employee-visible-count]');
     var normalize = function (value) {
+        // Samakan teks menjadi lowercase agar pencarian tidak sensitif huruf besar/kecil.
         return String(value || '').toLowerCase().trim();
     };
 
@@ -693,6 +765,7 @@ document.querySelectorAll('form[data-confirm-submit]').forEach(function (form) {
         var keyword = normalize(searchInput.value);
         var shown = 0;
 
+        // Sembunyikan baris yang tidak cocok dengan kata kunci pencarian.
         rows.forEach(function (row) {
             var haystack = normalize(row.getAttribute('data-employee-search-text') || row.textContent);
             var isMatch = keyword === '' || haystack.indexOf(keyword) !== -1;
@@ -702,10 +775,12 @@ document.querySelectorAll('form[data-confirm-submit]').forEach(function (form) {
             }
         });
 
+        // Baris kosong hanya ditampilkan jika semua baris tersaring.
         if (emptyRow) {
             emptyRow.classList.toggle('d-none', shown !== 0);
         }
 
+        // Update angka jumlah baris yang sedang terlihat.
         if (visibleCount) {
             visibleCount.textContent = shown;
         }

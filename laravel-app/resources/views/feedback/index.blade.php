@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Feedback'])
 
 @section('content')
+{{-- Form kirim feedback dari karyawan. --}}
 <div class="card mb-4"><div class="card-body">
     <form method="post" action="{{ route('feedback.store') }}" class="row g-2">
         @csrf
@@ -9,9 +10,11 @@
         <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100">Kirim</button></div>
     </form>
 </div></div>
+{{-- Riwayat feedback yang pernah dikirim user. --}}
 <div class="card"><div class="card-body">
     <div class="table-responsive"><table class="table table-striped align-middle">
         <thead><tr><th>Waktu</th><th>Kategori</th><th>Pesan</th></tr></thead>
+        {{-- Loop semua feedback user. --}}
         <tbody>@foreach($rows as $row)<tr><td>{{ $row->created_at }}</td><td>{{ $row->category }}</td><td>{{ $row->message }}</td></tr>@endforeach</tbody>
     </table></div>
 </div></div>

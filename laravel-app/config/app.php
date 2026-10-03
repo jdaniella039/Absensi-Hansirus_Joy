@@ -1,5 +1,6 @@
 <?php
 
+// Konfigurasi utama aplikasi Laravel.
 return [
 
     /*
@@ -13,6 +14,7 @@ return [
     |
     */
 
+    // Nama aplikasi, biasanya diambil dari APP_NAME di file .env.
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
@@ -26,6 +28,7 @@ return [
     |
     */
 
+    // Environment aplikasi: local, production, testing, dan sebagainya.
     'env' => env('APP_ENV', 'production'),
 
     /*
@@ -39,6 +42,7 @@ return [
     |
     */
 
+    // Mode debug: true untuk development, false untuk production.
     'debug' => (bool) env('APP_DEBUG', false),
 
     /*
@@ -52,6 +56,7 @@ return [
     |
     */
 
+    // URL dasar aplikasi untuk generate link dari Artisan atau helper URL.
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
@@ -65,6 +70,7 @@ return [
     |
     */
 
+    // Zona waktu default aplikasi.
     'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
@@ -78,10 +84,13 @@ return [
     |
     */
 
+    // Bahasa utama aplikasi.
     'locale' => env('APP_LOCALE', 'en'),
 
+    // Bahasa cadangan jika translation utama tidak ditemukan.
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
+    // Locale untuk data dummy Faker.
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
     /*
@@ -95,10 +104,13 @@ return [
     |
     */
 
+    // Algoritma enkripsi yang dipakai Laravel.
     'cipher' => 'AES-256-CBC',
 
+    // APP_KEY dari .env untuk enkripsi cookie, session, dan data terenkripsi lain.
     'key' => env('APP_KEY'),
 
+    // Key lama jika aplikasi pernah rotasi APP_KEY.
     'previous_keys' => [
         ...array_filter(
             explode(',', (string) env('APP_PREVIOUS_KEYS', ''))
@@ -118,8 +130,12 @@ return [
     |
     */
 
+    // Konfigurasi maintenance mode Laravel.
     'maintenance' => [
+        // Driver penyimpanan status maintenance.
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
+
+        // Store cache/database yang dipakai jika driver maintenance membutuhkannya.
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 

@@ -1,10 +1,17 @@
 <!doctype html>
 <html lang="id">
 <head>
+    {{-- Meta dasar agar halaman tampil benar di browser dan mobile. --}}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{-- Judul halaman memakai variabel $title jika dikirim dari view/controller. --}}
     <title>{{ $title ?? 'Absensi Hansirus' }}</title>
+
+    {{-- Bootstrap dipakai untuk komponen UI dan grid responsif. --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    {{-- CSS global sederhana untuk tampilan Laravel app. --}}
     <style>
         body { background: linear-gradient(180deg, #f7f4ee 0%, #eef4ef 100%); }
         .topbar { background: #18352f; }
@@ -15,17 +22,22 @@
     </style>
 </head>
 <body>
+{{-- Ambil user login sekali agar mudah dipakai di navbar dan hero. --}}
 @php($user = auth()->user())
+
+{{-- Navbar utama aplikasi. --}}
 <nav class="navbar navbar-expand-lg navbar-dark topbar mb-4">
     <div class="container">
         <a class="navbar-brand fw-bold" href="{{ route('dashboard') }}">Absensi Hansirus</a>
         @if($user)
+            {{-- Tombol hamburger untuk tampilan mobile. --}}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
                 <ul class="navbar-nav me-auto ms-lg-4">
                     @if($user->isAdmin())
+                        {{-- Menu khusus admin. --}}
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('employees.*') ? 'active' : '' }}" href="{{ route('employees.index') }}">Karyawan</a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('schedules.index') ? 'active' : '' }}" href="{{ route('schedules.index') }}">Jadwal</a></li>
@@ -35,6 +47,7 @@
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('feedback.admin-*') ? 'active' : '' }}" href="{{ route('feedback.admin-index') }}">Feedback</a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('audit.*') ? 'active' : '' }}" href="{{ route('audit.index') }}">Audit</a></li>
                     @else
+                        {{-- Menu khusus karyawan. --}}
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('attendance.*') ? 'active' : '' }}" href="{{ route('attendance.index') }}">Absensi</a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('schedules.my') ? 'active' : '' }}" href="{{ route('schedules.my') }}">Jadwal</a></li>
@@ -42,6 +55,7 @@
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('feedback.index') ? 'active' : '' }}" href="{{ route('feedback.index') }}">Feedback</a></li>
                     @endif
                 </ul>
+                {{-- Area kanan navbar: profil, identitas user, dan logout. --}}
                 <div class="d-flex align-items-center gap-2">
                     <a class="btn btn-sm btn-outline-light" href="{{ route('profile.index') }}">Profil</a>
                     <span class="text-white small">{{ $user->name }} ({{ $user->role }})</span>
@@ -57,6 +71,7 @@
 
 <div class="container pb-5">
     @if($user)
+        {{-- Hero panel yang tampil setelah user login. --}}
         <div class="card hero mb-4">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -74,6 +89,7 @@
         </div>
     @endif
 
+    {{-- Flash message dari controller. --}}
     @if(session('success'))
         <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
     @endif
@@ -84,9 +100,11 @@
         <div class="alert alert-danger border-0 shadow-sm">{{ $errors->first() }}</div>
     @endif
 
+    {{-- Konten halaman anak akan dimasukkan di sini. --}}
     @yield('content')
 </div>
 
+{{-- Script Bootstrap untuk komponen interaktif seperti navbar collapse. --}}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

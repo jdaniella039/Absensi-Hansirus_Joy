@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Dashboard Karyawan'])
 
 @section('content')
+{{-- Shortcut fitur utama untuk karyawan. --}}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><a href="{{ route('attendance.index') }}" class="card text-decoration-none h-100"><div class="card-body fw-semibold">Absensi</div></a></div>
     <div class="col-md-3"><a href="{{ route('schedules.my') }}" class="card text-decoration-none h-100"><div class="card-body fw-semibold">Jadwal Kerja</div></a></div>
@@ -9,6 +10,7 @@
 </div>
 
 <div class="row g-3">
+    {{-- Ringkasan absensi hari ini milik karyawan. --}}
     <div class="col-md-6">
         <div class="card"><div class="card-body">
             <h5>Status Absensi Hari Ini</h5>
@@ -17,6 +19,7 @@
             <p class="mb-0">Status: <strong>{{ $todayAttendance?->status ?? 'belum ada data' }}</strong></p>
         </div></div>
     </div>
+    {{-- Jadwal kerja terdekat setelah hari ini. --}}
     <div class="col-md-6">
         <div class="card"><div class="card-body">
             <h5>Jadwal Terdekat</h5>

@@ -4,13 +4,15 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// Migration awal untuk tabel user, reset password, dan session Laravel.
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Membuat tabel yang dibutuhkan autentikasi.
      */
     public function up(): void
     {
+        // Tabel users menyimpan akun admin dan karyawan.
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name', 120);
@@ -23,12 +25,14 @@ return new class extends Migration
             $table->timestamp('updated_at')->nullable();
         });
 
+        // Tabel token reset password dengan username sebagai primary key.
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('username')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
+        // Tabel sessions dipakai Laravel saat session driver database digunakan.
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
@@ -40,7 +44,7 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Menghapus tabel saat migration di-rollback.
      */
     public function down(): void
     {

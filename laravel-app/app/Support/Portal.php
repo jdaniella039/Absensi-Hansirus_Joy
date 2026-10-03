@@ -6,8 +6,10 @@ use App\Models\AttendanceLog;
 use App\Models\AuditLog;
 use App\Models\Schedule;
 
+// Kumpulan helper statis yang dipakai lintas controller.
 class Portal
 {
+    // Menyimpan aktivitas user/admin ke tabel audit_logs.
     public static function logAudit(?int $userId, string $action, string $description = ''): void
     {
         AuditLog::query()->create([
@@ -18,6 +20,7 @@ class Portal
         ]);
     }
 
+    // Mengambil absensi user pada tanggal hari ini.
     public static function todayAttendance(int $userId): ?AttendanceLog
     {
         return AttendanceLog::query()
@@ -26,6 +29,7 @@ class Portal
             ->first();
     }
 
+    // Mengambil jadwal user pada tanggal hari ini.
     public static function todaySchedule(int $userId): ?Schedule
     {
         return Schedule::query()
@@ -34,6 +38,7 @@ class Portal
             ->first();
     }
 
+    // Memastikan folder upload bukti izin tersedia, lalu mengembalikan path lengkapnya.
     public static function ensureLeaveEvidenceDirectory(): string
     {
         $path = public_path('uploads/leave-evidence');
@@ -44,6 +49,7 @@ class Portal
         return $path;
     }
 
+    // Memastikan folder upload bukti absensi tersedia, lalu mengembalikan path lengkapnya.
     public static function ensureAttendanceEvidenceDirectory(): string
     {
         $path = public_path('uploads/attendance-evidence');
@@ -54,6 +60,7 @@ class Portal
         return $path;
     }
 
+    // Menghapus file bukti izin jika path-nya ada dan file ditemukan.
     public static function deleteLeaveEvidence(?string $relativePath): void
     {
         if (!$relativePath) {
@@ -66,6 +73,7 @@ class Portal
         }
     }
 
+    // Menghapus file bukti absensi jika path-nya ada dan file ditemukan.
     public static function deleteAttendanceEvidence(?string $relativePath): void
     {
         if (!$relativePath) {

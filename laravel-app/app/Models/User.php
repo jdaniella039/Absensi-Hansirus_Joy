@@ -8,13 +8,14 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+// Model users: dipakai untuk login, role admin/karyawan, dan relasi data user.
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Kolom yang boleh diisi mass assignment lewat create() atau update().
      *
      * @var list<string>
      */
@@ -27,14 +28,14 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Kolom yang disembunyikan saat model diubah ke array/JSON.
      *
      * @var list<string>
      */
     protected $hidden = ['password', 'remember_token'];
 
     /**
-     * Get the attributes that should be cast.
+     * Casting tipe data otomatis untuk atribut tertentu.
      *
      * @return array<string, string>
      */
@@ -47,26 +48,31 @@ class User extends Authenticatable
         ];
     }
 
+    // Relasi: satu user bisa punya banyak jadwal kerja.
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
     }
 
+    // Relasi: satu user bisa punya banyak log absensi.
     public function attendanceLogs(): HasMany
     {
         return $this->hasMany(AttendanceLog::class);
     }
 
+    // Relasi: satu user bisa punya banyak pengajuan izin.
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
     }
 
+    // Relasi: satu user bisa punya banyak feedback.
     public function feedbacks(): HasMany
     {
         return $this->hasMany(Feedback::class);
     }
 
+    // Helper untuk mengecek apakah user berperan sebagai admin.
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

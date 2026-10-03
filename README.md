@@ -58,7 +58,7 @@ Jika memakai XAMPP, Laragon, atau Herd dengan port/user/password berbeda, sesuai
 Untuk akses dari laptop sendiri:
 
 ```bash
-php -S 127.0.0.1:8000
+php -d upload_max_filesize=10M -d post_max_size=12M -S 127.0.0.1:8000
 ```
 
 Buka:
@@ -70,7 +70,7 @@ http://127.0.0.1:8000
 Untuk akses dari HP dalam jaringan WiFi yang sama:
 
 ```bash
-php -S 0.0.0.0:8000
+php -d upload_max_filesize=10M -d post_max_size=12M -S 0.0.0.0:8000
 ```
 
 Lalu buka dari HP memakai IP laptop, contoh:
@@ -121,14 +121,29 @@ Kolom yang dipakai:
 
 Import CSV hanya menambah data baru. Jika ada username yang sudah dipakai, import dibatalkan agar data lama tidak tertimpa.
 
+## Import Jadwal CSV
+
+Admin dapat menambahkan banyak jadwal sekaligus melalui halaman `Kelola Jadwal`.
+
+Kolom template:
+
+- `username`: username karyawan yang sudah terdaftar
+- `tanggal`: format `YYYY-MM-DD`, minimal tanggal hari ini
+- `mulai`: format `HH:MM`
+- `selesai`: format `HH:MM` dan harus setelah jam mulai
+- `lokasi`: opsional
+- `catatan`: opsional
+
+Klik `Download Template CSV`, isi jadwal, lalu unggah melalui form `Import Jadwal dari CSV`. Import dibatalkan seluruhnya jika ada baris tidak valid, username tidak ditemukan, atau jadwal karyawan pada tanggal yang sama sudah ada.
+
 ## Catatan Teknis
 
 - Tabel database dibuat otomatis saat aplikasi pertama kali dibuka.
 - Konfigurasi database dibaca dari `.env`.
 - Bukti absensi disimpan di `storage/attendance_evidence`.
 - Bukti izin disimpan di `storage/leave_evidence`.
-- Format bukti izin: `JPG`, `JPEG`, `PNG`, atau `PDF`, maksimal `2 MB`.
-- Format bukti absensi: `JPG`, `JPEG`, atau `PNG`, maksimal `2 MB`.
+- Format bukti izin: `JPG`, `JPEG`, `PNG`, atau `PDF`, maksimal `10 MB`.
+- Format bukti absensi: `JPG`, `JPEG`, atau `PNG`, maksimal `10 MB`.
 - File log dan cache tidak perlu masuk Git karena bisa dibuat ulang.
 
 ## Backup Database

@@ -5,8 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+// Model attendance_logs: menyimpan absensi harian dan status verifikasinya.
 class AttendanceLog extends Model
 {
+    // Kolom yang boleh diisi melalui mass assignment.
     protected $fillable = [
         'user_id',
         'attendance_date',
@@ -24,6 +26,7 @@ class AttendanceLog extends Model
         'verified_at',
     ];
 
+    // Casting tanggal/jam agar otomatis menjadi objek Carbon.
     protected function casts(): array
     {
         return [
@@ -38,11 +41,13 @@ class AttendanceLog extends Model
         ];
     }
 
+    // Relasi: absensi dimiliki oleh satu user/karyawan.
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    // Relasi: absensi diverifikasi oleh satu user admin.
     public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');

@@ -1,8 +1,10 @@
 @extends('layouts.app', ['title' => 'Data Karyawan'])
 
 @section('content')
+{{-- Form tambah atau edit karyawan. --}}
 <div class="card mb-4"><div class="card-body">
     <h5>{{ $editingEmployee ? 'Edit Karyawan' : 'Tambah Karyawan' }}</h5>
+    {{-- Jika sedang edit, form mengarah ke route update; jika tidak, ke route store. --}}
     <form method="post" action="{{ $editingEmployee ? route('employees.update', $editingEmployee) : route('employees.store') }}" class="row g-2">
         @csrf
         @if($editingEmployee) @method('PUT') @endif
@@ -16,11 +18,13 @@
     </form>
 </div></div>
 
+{{-- Tabel daftar karyawan dan aksi admin. --}}
 <div class="card"><div class="card-body">
     <h5>Daftar Karyawan</h5>
     <div class="table-responsive"><table class="table table-striped align-middle">
         <thead><tr><th>Nama</th><th>Username</th><th>Jabatan</th><th>Aksi</th></tr></thead>
         <tbody>
+        {{-- Loop semua data karyawan. --}}
         @foreach($employees as $employee)
             <tr>
                 <td>{{ $employee->name }}</td>
@@ -30,6 +34,7 @@
                     <div class="d-flex flex-wrap gap-1">
                         <a href="{{ route('employees.index', ['edit_employee_id' => $employee->id]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                         <form method="post" action="{{ route('employees.destroy', $employee) }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Hapus</button></form>
+                        {{-- Form kecil untuk reset password karyawan. --}}
                         <form method="post" action="{{ route('employees.reset-password', $employee) }}" class="d-flex gap-1">
                             @csrf
                             <input type="password" name="new_password" class="form-control form-control-sm" placeholder="Password baru" required>

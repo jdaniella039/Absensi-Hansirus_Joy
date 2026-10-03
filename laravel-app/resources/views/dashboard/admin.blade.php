@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Dashboard Admin'])
 
 @section('content')
+{{-- Kartu statistik utama untuk admin. --}}
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="card bg-success-subtle"><div class="card-body"><small>Total Karyawan</small><h3>{{ $employeeCount }}</h3></div></div></div>
     <div class="col-md-3"><div class="card bg-warning-subtle"><div class="card-body"><small>Absensi Pending</small><h3>{{ (int) ($stats->pending ?? 0) }}</h3></div></div></div>
@@ -8,7 +9,9 @@
     <div class="col-md-3"><div class="card bg-primary-subtle"><div class="card-body"><small>Feedback Masuk</small><h3>{{ $feedbackCount }}</h3></div></div></div>
 </div>
 
+{{-- Shortcut cepat ke modul admin. --}}
 <div class="row g-3">
+    {{-- Array kecil ini mencegah penulisan card shortcut berulang-ulang. --}}
     @foreach([
         ['route' => 'employees.index', 'label' => 'Data Karyawan'],
         ['route' => 'schedules.index', 'label' => 'Kelola Jadwal'],
